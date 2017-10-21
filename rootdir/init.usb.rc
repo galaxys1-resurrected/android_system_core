@@ -12,8 +12,16 @@ on post-fs-data
     mkdir /data/adb 0700 root root
 
 # adbd is controlled via property triggers in init.<platform>.usb.rc
-service adbd /sbin/adbd --root_seclabel=u:r:su:s0
+service adbd /sbin/adbdXXX --root_seclabel=u:r:su:s0
     class core
+    socket adbd stream 660 system system
+    disabled
+    seclabel u:r:adbd:s0
+
+service adbdearly /sbin/adbd --root_seclabel=u:r:su:s0
+    class core
+    user root
+    group root
     socket adbd stream 660 system system
     disabled
     seclabel u:r:adbd:s0
@@ -24,6 +32,13 @@ on property:ro.kernel.qemu=1
 
 on boot
     setprop sys.usb.configfs 0
+    write /sys/class/android_usb/android0/enable 0
+    write /sys/class/android_usb/android0/idVendor 18d1
+    write /sys/class/android_usb/android0/idProduct 4EE7
+    write /sys/class/android_usb/android0/functions adb
+    write /sys/class/android_usb/android0/enable 1
+    start adbdearly
+    setprop sys.usb.state adb
 
 # Used to disable USB when switching states
 on property:sys.usb.config=none && property:sys.usb.configfs=0
